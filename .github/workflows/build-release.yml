@@ -3,6 +3,10 @@ name: Build & Release
 on:
   workflow_dispatch:
     inputs:
+      version:
+        description: Four-part app version to build, for example 0.9.3.2. Leave empty to use Package.appxmanifest.
+        required: false
+        type: string
       configuration:
         description: Build configuration
         required: true
@@ -11,6 +15,11 @@ on:
         options:
           - Debug
           - Release
+      publish_release:
+        description: Create/update the GitHub Release and upload release assets.
+        required: true
+        default: true
+        type: boolean
   push:
     tags:
       - 'v*.*.*.*'
@@ -24,9 +33,12 @@ permissions:
 
 env:
   SOLUTION_PATH: ModernFlyouts.sln
+  APP_PROJECT: ModernFlyouts\ModernFlyouts.csproj
   PACKAGE_PROJECT: ModernFlyouts.Package\ModernFlyouts.Package.wapproj
   PACKAGE_MANIFEST: ModernFlyouts.Package\Package.appxmanifest
+  APPINSTALLER_PATH: ModernFlyouts.Package\Package.appinstaller
   PACKAGE_OUTPUT_DIR: ModernFlyouts.Package\AppPackages\CI\
+  RELEASE_ASSET_DIR: ModernFlyouts.Package\AppPackages\ReleaseAssets\
   APPX_BUNDLE_PLATFORMS: x86|x64
   CERT_PASSWORD: Astear17-GlobalFlyouts-CI-Test-Cert
   MSIX_PFX_BASE64: ${{ secrets.MSIX_PFX_BASE64 }}
@@ -51,37 +63,75 @@ jobs:
             6.0.x
             9.0.x
 
-      - name: Resolve package version and release tag
+      - name: Resolve and stamp package version
         id: version
         shell: pwsh
         run: |
-          [xml]$manifest = Get-Content $env:PACKAGE_MANIFEST
-          $packageVersion = $manifest.Package.Identity.Version
-          if ($packageVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
-            throw "Package.appxmanifest Identity.Version must be four numeric parts, but was '$packageVersion'."
+          function Assert-Version($value, $source) {
+            if ($value -notmatch '^v?\d+\.\d+\.\d+\.\d+$') {
+              throw "$source '$value' must be a four-part app version with optional leading v, for example v0.9.3.2."
+            }
           }
+
+          [xml]$manifest = Get-Content $env:PACKAGE_MANIFEST
+          $manifestVersion = $manifest.Package.Identity.Version
+          Assert-Version $manifestVersion 'Package.appxmanifest Identity.Version'
 
           $eventName = '${{ github.event_name }}'
           $tagName = ''
+          $requestedVersion = ''
+
           if ($eventName -eq 'release') {
             $tagName = '${{ github.event.release.tag_name }}'
           } elseif ('${{ github.ref_type }}' -eq 'tag') {
             $tagName = '${{ github.ref_name }}'
+          } elseif ($eventName -eq 'workflow_dispatch') {
+            $requestedVersion = '${{ inputs.version }}'.Trim()
           }
 
           if ($tagName) {
-            if ($tagName -notmatch '^v?\d+\.\d+\.\d+\.\d+$') {
-              throw "Release tag '$tagName' must be a four-part app version, with optional leading v, for example v$packageVersion."
+            Assert-Version $tagName 'Release tag'
+            $packageVersion = $tagName -replace '^v', ''
+            $releaseTag = $tagName
+          } elseif ($requestedVersion) {
+            Assert-Version $requestedVersion 'Workflow version input'
+            $packageVersion = $requestedVersion -replace '^v', ''
+            $releaseTag = "v$packageVersion"
+          } else {
+            $packageVersion = $manifestVersion -replace '^v', ''
+            $releaseTag = "v$packageVersion"
+          }
+
+          Assert-Version $packageVersion 'Resolved package version'
+
+          $manifest.Package.Identity.Version = $packageVersion
+          $manifest.Save((Resolve-Path $env:PACKAGE_MANIFEST))
+
+          [xml]$appProject = Get-Content $env:APP_PROJECT
+          $propertyGroup = @($appProject.Project.PropertyGroup | Where-Object { -not $_.Condition })[0]
+          foreach ($name in @('Version', 'AssemblyVersion', 'FileVersion', 'InformationalVersion')) {
+            if (-not $propertyGroup.$name) {
+              $node = $appProject.CreateElement($name)
+              [void]$propertyGroup.AppendChild($node)
             }
 
-            $tagVersion = $tagName -replace '^v', ''
-            if ($tagVersion -ne $packageVersion) {
-              throw "Release tag '$tagName' does not match Package.appxmanifest Identity.Version '$packageVersion'."
-            }
+            $propertyGroup.$name = $packageVersion
+          }
+          $appProject.Save((Resolve-Path $env:APP_PROJECT))
+
+          if (Test-Path $env:APPINSTALLER_PATH) {
+            [xml]$appInstaller = Get-Content $env:APPINSTALLER_PATH
+            $appInstaller.AppInstaller.Version = $packageVersion
+            $appInstaller.AppInstaller.Uri = "https://github.com/Astear17/GlobalFlyouts/releases/download/$releaseTag/GlobalFlyouts.appinstaller"
+            $appInstaller.AppInstaller.MainBundle.Name = 'Astear17.GlobalFlyouts'
+            $appInstaller.AppInstaller.MainBundle.Publisher = 'CN=Astear17'
+            $appInstaller.AppInstaller.MainBundle.Version = $packageVersion
+            $appInstaller.AppInstaller.MainBundle.Uri = "https://github.com/Astear17/GlobalFlyouts/releases/download/$releaseTag/GlobalFlyouts-$packageVersion-x86_x64.msixbundle"
+            $appInstaller.Save((Resolve-Path $env:APPINSTALLER_PATH))
           }
 
           "package_version=$packageVersion" >> $env:GITHUB_OUTPUT
-          "tag_name=$tagName" >> $env:GITHUB_OUTPUT
+          "release_tag=$releaseTag" >> $env:GITHUB_OUTPUT
 
       - name: Prepare package signing certificate
         id: signing
@@ -141,55 +191,86 @@ jobs:
             "/p:PackageCertificateKeyFile=ModernFlyouts.Package_TemporaryKey.pfx" `
             "/p:PackageCertificatePassword=$env:PACKAGE_CERT_PASSWORD" `
             "/p:PackageCertificateThumbprint=${{ steps.signing.outputs.certificate_thumbprint }}" `
+            "/p:Version=${{ steps.version.outputs.package_version }}" `
+            "/p:AssemblyVersion=${{ steps.version.outputs.package_version }}" `
+            "/p:FileVersion=${{ steps.version.outputs.package_version }}" `
+            "/p:InformationalVersion=${{ steps.version.outputs.package_version }}" `
             /v:minimal
 
-      - name: Write signing notice
+      - name: Prepare release assets
+        id: assets
         shell: pwsh
         run: |
+          $version = '${{ steps.version.outputs.package_version }}'
+          $releaseAssetDir = Join-Path $env:GITHUB_WORKSPACE $env:RELEASE_ASSET_DIR
+          $packageOutputDir = Join-Path $env:GITHUB_WORKSPACE $env:PACKAGE_OUTPUT_DIR
+
+          if (Test-Path $releaseAssetDir) {
+            Remove-Item $releaseAssetDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $releaseAssetDir -Force | Out-Null
+
+          $bundle = Get-ChildItem -Path $packageOutputDir -Recurse -Filter '*.msixbundle' | Select-Object -First 1
+          if (-not $bundle) {
+            throw "No .msixbundle was produced under $packageOutputDir."
+          }
+
+          $cer = Get-ChildItem -Path $packageOutputDir -Recurse -Filter '*.cer' | Select-Object -First 1
+          if (-not $cer) {
+            $cer = Get-Item (Join-Path $env:GITHUB_WORKSPACE 'ModernFlyouts.Package\ModernFlyouts.Package_TemporaryKey.cer')
+          }
+
+          $generatedInstaller = Get-ChildItem -Path $packageOutputDir -Recurse -Filter 'Install.ps1' | Select-Object -First 1
+          if (-not $generatedInstaller) {
+            throw "No generated package Install.ps1 was produced under $packageOutputDir."
+          }
+
           $notice = @"
           # Package signing notice
 
-          Package version: ${{ steps.version.outputs.package_version }}
+          Package version: $version
           Certificate source: ${{ steps.signing.outputs.certificate_source }}
+
+          Release assets:
+          - GlobalFlyouts-$version-msixbundle.zip: full install package, dependencies, generated Install.ps1, and certificate.
+          - GlobalFlyouts-$version-x86_x64.msixbundle: standalone MSIX bundle for manual sideloading.
+          - GlobalFlyouts-$version.cer: signing certificate for manual sideloading.
+          - GlobalFlyouts-$version-Install.ps1: generated package installer copied from the MSIX packaging output.
 
           If certificate source is `self-signed-test`, the package is not production-signed. Installers must trust the generated `.cer` certificate before sideloading the `.msixbundle`.
           The package manifest publisher is `CN=Astear17`, so any production certificate supplied through `MSIX_PFX_BASE64` must match that publisher identity or the MSIX signing step will fail.
           "@
 
-          $noticePath = Join-Path $env:GITHUB_WORKSPACE 'ModernFlyouts.Package\AppPackages\CI\SIGNING-NOTICE.md'
-          New-Item -ItemType Directory -Path (Split-Path $noticePath) -Force | Out-Null
+          $noticePath = Join-Path $releaseAssetDir 'SIGNING-NOTICE.md'
           Set-Content -Path $noticePath -Value $notice -Encoding UTF8
 
-      - name: Create release package ZIP
-        id: archive
-        shell: pwsh
-        run: |
-          $version = '${{ steps.version.outputs.package_version }}'
-          $archivePath = Join-Path $env:GITHUB_WORKSPACE "ModernFlyouts.Package\AppPackages\GlobalFlyouts-$version-msixbundle.zip"
-          if (Test-Path $archivePath) {
-            Remove-Item $archivePath -Force
-          }
+          Copy-Item $bundle.FullName (Join-Path $releaseAssetDir "GlobalFlyouts-$version-x86_x64.msixbundle") -Force
+          Copy-Item $cer.FullName (Join-Path $releaseAssetDir "GlobalFlyouts-$version.cer") -Force
+          Copy-Item $generatedInstaller.FullName (Join-Path $releaseAssetDir "GlobalFlyouts-$version-Install.ps1") -Force
 
+          $archivePath = Join-Path $releaseAssetDir "GlobalFlyouts-$version-msixbundle.zip"
           Compress-Archive `
-            -Path (Join-Path $env:GITHUB_WORKSPACE 'ModernFlyouts.Package\AppPackages\CI\*') `
+            -Path (Join-Path $packageOutputDir '*') `
             -DestinationPath $archivePath `
             -Force
 
-          "archive_path=$archivePath" >> $env:GITHUB_OUTPUT
+          "release_asset_dir=$releaseAssetDir" >> $env:GITHUB_OUTPUT
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: GlobalFlyouts-${{ steps.version.outputs.package_version }}-msixbundle
+          name: GlobalFlyouts-${{ steps.version.outputs.package_version }}-release-assets
           path: |
             ModernFlyouts.Package\AppPackages\CI\**
-            ModernFlyouts.Package\AppPackages\GlobalFlyouts-${{ steps.version.outputs.package_version }}-msixbundle.zip
+            ModernFlyouts.Package\AppPackages\ReleaseAssets\**
 
       - name: Attach assets to GitHub release
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.tag_name }}
+          tag_name: ${{ steps.version.outputs.release_tag }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          make_latest: true
           files: |
-            ModernFlyouts.Package\AppPackages\GlobalFlyouts-${{ steps.version.outputs.package_version }}-msixbundle.zip
-            ModernFlyouts.Package\AppPackages\CI\SIGNING-NOTICE.md
+            ModernFlyouts.Package\AppPackages\ReleaseAssets\*

@@ -83,7 +83,7 @@ To install a specific release tag:
 powershell -ExecutionPolicy Bypass -File "$env:TEMP\GlobalFlyouts-Install.ps1" -Version v0.9.3.1
 ```
 
-The bootstrap downloads the release ZIP that contains the generated MSIX bundle, dependencies, certificate, and generated package `Install.ps1`, then runs that generated installer locally.
+The bootstrap downloads the release ZIP that contains the generated MSIX bundle, dependencies, certificate, and generated package `Install.ps1`. If the package is self-signed, it prompts for elevation to trust the included certificate before running the generated installer locally.
 
 **Manual GitHub install:**
 
@@ -92,7 +92,7 @@ The bootstrap downloads the release ZIP that contains the generated MSIX bundle,
 3. Extract the ZIP.
 4. Run the extracted `Install.ps1` from PowerShell and launch the app from the **Start Menu**.
 
-If the release is test-signed, Windows may prompt you to trust the included certificate before sideloading the MSIX bundle. Production signing requires a real code-signing certificate.
+The release workflow also uploads standalone `GlobalFlyouts-*-x86_x64.msixbundle` and `GlobalFlyouts-*.cer` assets for manual sideloading. If the release is test-signed, install the `.cer` into the trusted root store before opening the `.msixbundle`. Production signing requires a real code-signing certificate.
 
 **Original ModernFlyouts distribution:**
 
