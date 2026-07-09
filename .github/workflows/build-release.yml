@@ -37,8 +37,8 @@ env:
   PACKAGE_PROJECT: ModernFlyouts.Package\ModernFlyouts.Package.wapproj
   PACKAGE_MANIFEST: ModernFlyouts.Package\Package.appxmanifest
   APPINSTALLER_PATH: ModernFlyouts.Package\Package.appinstaller
-  PACKAGE_OUTPUT_DIR: ModernFlyouts.Package\AppPackages\CI\
-  RELEASE_ASSET_DIR: ModernFlyouts.Package\AppPackages\ReleaseAssets\
+  PACKAGE_OUTPUT_DIR: ModernFlyouts.Package\AppPackages\CI
+  RELEASE_ASSET_DIR: ModernFlyouts.Package\AppPackages\ReleaseAssets
   APPX_BUNDLE_PLATFORMS: x86|x64
   MSIX_PFX_BASE64: ${{ secrets.MSIX_PFX_BASE64 }}
   MSIX_PFX_PASSWORD: ${{ secrets.MSIX_PFX_PASSWORD }}
@@ -52,6 +52,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Resolve package output paths
+        id: paths
+        shell: pwsh
+        run: |
+          $packageOutputDir = Join-Path $env:GITHUB_WORKSPACE $env:PACKAGE_OUTPUT_DIR
+          $releaseAssetDir = Join-Path $env:GITHUB_WORKSPACE $env:RELEASE_ASSET_DIR
+
+          Write-Host "Package output directory: $packageOutputDir"
+          Write-Host "Release asset directory: $releaseAssetDir"
+
+          "PACKAGE_OUTPUT_DIR=$packageOutputDir" >> $env:GITHUB_ENV
+          "RELEASE_ASSET_DIR=$releaseAssetDir" >> $env:GITHUB_ENV
+          "package_output_dir=$packageOutputDir" >> $env:GITHUB_OUTPUT
+          "release_asset_dir=$releaseAssetDir" >> $env:GITHUB_OUTPUT
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
@@ -209,13 +224,27 @@ jobs:
         shell: pwsh
         run: |
           $version = '${{ steps.version.outputs.package_version }}'
-          $releaseAssetDir = Join-Path $env:GITHUB_WORKSPACE $env:RELEASE_ASSET_DIR
-          $packageOutputDir = Join-Path $env:GITHUB_WORKSPACE $env:PACKAGE_OUTPUT_DIR
+          $releaseAssetDir = $env:RELEASE_ASSET_DIR
+          $packageOutputDir = $env:PACKAGE_OUTPUT_DIR
+
+          Write-Host "Package output directory: $packageOutputDir"
+          Write-Host "Release asset directory: $releaseAssetDir"
 
           if (Test-Path $releaseAssetDir) {
             Remove-Item $releaseAssetDir -Recurse -Force
           }
           New-Item -ItemType Directory -Path $releaseAssetDir -Force | Out-Null
+
+          if (-not (Test-Path $packageOutputDir)) {
+            $searchRoot = Join-Path $env:GITHUB_WORKSPACE 'ModernFlyouts.Package'
+            $candidateBundles = Get-ChildItem -Path $searchRoot -Recurse -Filter '*.msixbundle' -ErrorAction SilentlyContinue
+            if ($candidateBundles) {
+              Write-Host 'Found bundle candidates outside the expected package output directory:'
+              $candidateBundles | ForEach-Object { Write-Host "  $($_.FullName)" }
+            }
+
+            throw "Package output directory does not exist: $packageOutputDir"
+          }
 
           $bundle = Get-ChildItem -Path $packageOutputDir -Recurse -Filter '*.msixbundle' | Select-Object -First 1
           if (-not $bundle) {
@@ -268,8 +297,8 @@ jobs:
         with:
           name: GlobalFlyouts-${{ steps.version.outputs.package_version }}-release-assets
           path: |
-            ModernFlyouts.Package\AppPackages\CI\**
-            ModernFlyouts.Package\AppPackages\ReleaseAssets\**
+            ${{ steps.paths.outputs.package_output_dir }}\**
+            ${{ steps.paths.outputs.release_asset_dir }}\**
 
       - name: Attach assets to GitHub release
         if: github.event_name == 'release' || github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
@@ -280,4 +309,4 @@ jobs:
           generate_release_notes: true
           make_latest: true
           files: |
-            ModernFlyouts.Package\AppPackages\ReleaseAssets\*
+            ${{ steps.paths.outputs.release_asset_dir }}\*
