@@ -30,6 +30,7 @@ namespace ModernFlyouts
         private CancellationTokenSource mediaBackendCancellationTokenSource;
         private bool mediaBackendRefreshInProgress;
         private bool mediaBackendStarted;
+        private bool isFlyoutVisible;
         private bool isInitializing;
         private bool isVolumeFlyout = true;
 
@@ -489,14 +490,7 @@ namespace ModernFlyouts
 
         private bool IsMediaTimelineDisplayed()
         {
-            if (!ShowSeekbar || !SecondaryContentVisible)
-            {
-                return false;
-            }
-
-            var flyoutHandler = FlyoutHandler.Instance;
-            return flyoutHandler?.OnScreenFlyoutWindow?.IsOpen == true &&
-                ReferenceEquals(flyoutHandler.OnScreenFlyoutView?.FlyoutHelper, this);
+            return isFlyoutVisible && ShowSeekbar && SecondaryContentVisible;
         }
 
         private void RefreshMediaTimelineActivity()
@@ -551,6 +545,25 @@ namespace ModernFlyouts
                     mediaBackendRefreshInProgress = false;
                 }
             }
+        }
+
+        private void StopMediaSessionBackend()
+        {
+            mediaBackendCancellationTokenSource?.Cancel();
+            mediaBackendCancellationTokenSource?.Dispose();
+            mediaBackendCancellationTokenSource = null;
+            mediaBackendRefreshInProgress = false;
+            mediaBackendStarted = false;
+
+            foreach (var mediaSessionManager in mediaSessionManagers)
+            {
+                mediaSessionManager.MediaSessionsChanged -= MediaSessionManager_MediaSessionsChanged;
+                mediaSessionManager.OnDisabled();
+            }
+
+            mediaSessionManagers.Clear();
+            AllMediaSessions.Clear();
+            ValidateSecondaryContentVisible();
         }
 
         private MediaSessionSelectionOptions CreateSelectionOptions()
@@ -652,8 +665,8 @@ namespace ModernFlyouts
         {
             base.OnDisabled();
 
-            mediaBackendCancellationTokenSource?.Cancel();
-            mediaBackendStarted = false;
+            isFlyoutVisible = false;
+            StopMediaSessionBackend();
 
             client.DefaultDeviceChanged -= Client_DefaultDeviceChanged;
 
@@ -665,25 +678,20 @@ namespace ModernFlyouts
             PrimaryContent = null;
             PrimaryContentVisible = false;
 
-            foreach (var mediaSessionManager in mediaSessionManagers)
-            {
-                mediaSessionManager.OnDisabled();
-            }
-
-            mediaSessionManagers.Clear();
-            AllMediaSessions.Clear();
             AppDataHelper.AudioModuleEnabled = IsEnabled;
         }
 
         public override void OnFlyoutShown()
         {
+            isFlyoutVisible = true;
             EnsureMediaSessionBackendStarted();
             RefreshMediaTimelineActivity();
         }
 
         public override void OnFlyoutHidden()
         {
-            RefreshMediaTimelineActivity();
+            isFlyoutVisible = false;
+            StopMediaSessionBackend();
         }
     }
 }

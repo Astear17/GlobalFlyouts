@@ -31,6 +31,7 @@ namespace ModernFlyouts
         private List<FlyoutHelperBase> flyoutHelpers = new();
         private AirplaneModeWatcher airplaneModeWatcher = new();
         private FlyoutTriggerData prevTriggerData;
+        private FlyoutHelperBase visibleFlyoutHelper;
 
         #region Properties
 
@@ -255,6 +256,7 @@ namespace ModernFlyouts
                 SaveOnScreenFlyoutPosition();
                 UpdatePreferredMonitor();
             };
+            flyoutWindow.Closed += OnScreenFlyoutWindow_Closed;
 
             OnScreenFlyoutWindow = flyoutWindow;
 
@@ -393,6 +395,12 @@ namespace ModernFlyouts
 
             NativeFlyoutHandler.Instance.VerifyNativeFlyoutCreated();
 
+            if (visibleFlyoutHelper != null && !ReferenceEquals(visibleFlyoutHelper, helper))
+            {
+                visibleFlyoutHelper.OnFlyoutHidden();
+                visibleFlyoutHelper = null;
+            }
+
             if (helper.AlwaysHandleDefaultFlyout)
             {
                 NativeFlyoutHandler.Instance.HideNativeFlyout();
@@ -400,8 +408,20 @@ namespace ModernFlyouts
 
             OnScreenFlyoutView.FlyoutHelper = helper;
             OnScreenFlyoutWindow.IsOpen = true;
+            visibleFlyoutHelper = helper;
             helper.OnFlyoutShown();
             OnScreenFlyoutWindow.StartCloseTimer();
+        }
+
+        private void OnScreenFlyoutWindow_Closed(object sender, RoutedEventArgs e)
+        {
+            if (visibleFlyoutHelper == null)
+            {
+                return;
+            }
+
+            visibleFlyoutHelper.OnFlyoutHidden();
+            visibleFlyoutHelper = null;
         }
 
         private bool Handled()

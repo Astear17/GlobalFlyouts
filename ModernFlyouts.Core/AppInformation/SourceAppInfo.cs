@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using static ModernFlyouts.Core.Interop.NativeMethods;
 
@@ -77,6 +78,43 @@ namespace ModernFlyouts.Core.AppInformation
             };
 
             return FromData(data);
+        }
+
+        public static string GetFallbackDisplayName(string appUserModelId)
+        {
+            if (string.IsNullOrWhiteSpace(appUserModelId))
+            {
+                return string.Empty;
+            }
+
+            string name = appUserModelId;
+            int appSeparatorIndex = name.LastIndexOf('!');
+            if (appSeparatorIndex >= 0 && appSeparatorIndex < name.Length - 1)
+            {
+                name = name[(appSeparatorIndex + 1)..];
+            }
+
+            if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                name = name[..^4];
+            }
+
+            int dotIndex = name.LastIndexOf('.');
+            if (dotIndex >= 0 && dotIndex < name.Length - 1)
+            {
+                name = name[(dotIndex + 1)..];
+            }
+
+            name = name.Replace('-', ' ').Replace('_', ' ').Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return appUserModelId;
+            }
+
+            string displayName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(name.ToLowerInvariant());
+            return string.Equals(displayName, "Youtube", StringComparison.OrdinalIgnoreCase)
+                ? "YouTube"
+                : displayName.Replace("Youtube", "YouTube", StringComparison.Ordinal);
         }
 
         public abstract void Activate();

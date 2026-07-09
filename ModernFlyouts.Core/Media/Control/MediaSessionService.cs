@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using ModernFlyouts.Core.AppInformation;
 using Windows.Media.Control;
 
 namespace ModernFlyouts.Core.Media.Control
@@ -400,7 +401,9 @@ namespace ModernFlyouts.Core.Media.Control
             {
                 StableSessionId = stableSessionId,
                 SourceAppUserModelId = sourceAppUserModelId,
-                DisplayAppName = string.IsNullOrWhiteSpace(sourceAppUserModelId) ? stableSessionId : sourceAppUserModelId,
+                DisplayAppName = string.IsNullOrWhiteSpace(sourceAppUserModelId)
+                    ? stableSessionId
+                    : SourceAppInfo.GetFallbackDisplayName(sourceAppUserModelId),
                 Title = mediaProperties?.Title ?? string.Empty,
                 Artist = mediaProperties?.Artist ?? string.Empty,
                 AlbumTitle = mediaProperties?.AlbumTitle ?? string.Empty,

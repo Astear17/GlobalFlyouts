@@ -92,7 +92,7 @@ namespace ModernFlyouts.Core.AppInformation
         {
             base.Disconnect();
 
-            sourceProcess.Dispose();
+            sourceProcess?.Dispose();
             sourceProcess = null;
         }
 

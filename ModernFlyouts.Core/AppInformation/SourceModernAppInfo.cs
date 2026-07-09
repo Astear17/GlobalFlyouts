@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading.Tasks;
+using ModernFlyouts.Core.Utilities;
 using Windows.ApplicationModel.Core;
 using Windows.Management.Deployment;
 using static ModernFlyouts.Core.Interop.NativeMethods;
@@ -23,15 +26,20 @@ namespace ModernFlyouts.Core.AppInformation
         public override event EventHandler InfoFetched;
 
         private AppListEntry sourceApp;
+        private Process fallbackProcess;
         private int currentAppIndex;
 
         public override void Activate()
         {
             try
             {
-                if (Data.DataType == SourceAppInfoDataType.FromAppUserModelId)
+                if (sourceApp != null && Data.DataType == SourceAppInfoDataType.FromAppUserModelId)
                 {
                     _ = sourceApp?.LaunchAsync();
+                }
+                else if (fallbackProcess != null)
+                {
+                    SourceDesktopAppInfo.ActivateWindow(fallbackProcess.MainWindowHandle);
                 }
                 else if (Data.DataType == SourceAppInfoDataType.FromProcessId)
                 {
@@ -89,7 +97,11 @@ namespace ModernFlyouts.Core.AppInformation
             catch { }
 
             if (sourceApp == null)
+            {
+                await FetchUnpackagedFallbackInfosAsync(appUserModelId);
+                InfoFetched?.Invoke(this, null);
                 return;
+            }
 
             try
             {
@@ -118,6 +130,108 @@ namespace ModernFlyouts.Core.AppInformation
             });
 
             InfoFetched?.Invoke(this, null);
+        }
+
+        private async Task FetchUnpackagedFallbackInfosAsync(string appUserModelId)
+        {
+            if (string.IsNullOrWhiteSpace(appUserModelId))
+            {
+                return;
+            }
+
+            await Task.Run(() =>
+            {
+                fallbackProcess?.Dispose();
+                fallbackProcess = FindProcessByAppUserModelId(appUserModelId);
+                if (fallbackProcess == null)
+                {
+                    DisplayName = GetFallbackDisplayName(appUserModelId);
+                    return;
+                }
+
+                string executablePath = string.Empty;
+
+                try
+                {
+                    executablePath = fallbackProcess.MainModule.FileName;
+                    DisplayName = fallbackProcess.MainModule.FileVersionInfo.FileDescription;
+                }
+                catch { }
+
+                if (string.IsNullOrWhiteSpace(DisplayName))
+                {
+                    DisplayName = GetFallbackDisplayName(appUserModelId);
+                }
+
+                if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath))
+                {
+                    return;
+                }
+
+                try
+                {
+                    var iconExtractor = new IconExtractor(executablePath);
+                    using Icon icon = iconExtractor.GetIcon(0);
+                    using Bitmap bitmap = icon.ToBitmap();
+                    MemoryStream memoryStream = new();
+                    bitmap.Save(memoryStream, ImageFormat.Png);
+                    memoryStream.Seek(0, SeekOrigin.Begin);
+                    LogoStream = memoryStream;
+                }
+                catch { }
+            });
+        }
+
+        private static Process FindProcessByAppUserModelId(string appUserModelId)
+        {
+            Process fallback = null;
+
+            foreach (var process in Process.GetProcesses())
+            {
+                try
+                {
+                    string processAppUserModelId = GetAppUserModelIdForProcess(process);
+                    if (!string.Equals(processAppUserModelId, appUserModelId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        process.Dispose();
+                        continue;
+                    }
+
+                    if (process.MainWindowHandle != IntPtr.Zero)
+                    {
+                        fallback?.Dispose();
+                        return process;
+                    }
+
+                    if (fallback == null)
+                    {
+                        fallback = process;
+                    }
+                    else
+                    {
+                        process.Dispose();
+                    }
+                }
+                catch
+                {
+                    process.Dispose();
+                }
+            }
+
+            return fallback;
+        }
+
+        private static string GetAppUserModelIdForProcess(Process process)
+        {
+            if (process == null)
+            {
+                return string.Empty;
+            }
+
+            int amuidBufferLength = 512;
+            StringBuilder amuidBuffer = new(amuidBufferLength);
+            int result = GetApplicationUserModelId(process.Handle, ref amuidBufferLength, amuidBuffer);
+            return result == 0 ? amuidBuffer.ToString() : string.Empty;
         }
 
         private string GetLogoPathFromAppPath(string appPath)
@@ -221,6 +335,8 @@ namespace ModernFlyouts.Core.AppInformation
         {
             base.Disconnect();
             sourceApp = null;
+            fallbackProcess?.Dispose();
+            fallbackProcess = null;
         }
 
         #region Appx Things

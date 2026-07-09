@@ -51,6 +51,9 @@ namespace ModernFlyouts.Core.UI
                 Opacity = 0.0;
                 Visibility = Visibility.Hidden;
             }
+
+            RoutedEventArgs closedArgs = new(ClosedEvent);
+            RaiseEvent(closedArgs);
         }
 
         #region Close Timer
