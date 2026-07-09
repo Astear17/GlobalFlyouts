@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AppInstaller
-	Uri="https://github.com/ModernFlyouts-Community/ModernFlyouts/releases/download/0.9.0/ModernFlyouts.Package.appinstaller"
-	Version="0.9.0.0"
+	Uri="https://github.com/Astear17/GlobalFlyouts/releases/download/v0.9.3.1/GlobalFlyouts.appinstaller"
+	Version="0.9.3.1"
 	xmlns="http://schemas.microsoft.com/appx/appinstaller/2018">
 
 	<MainBundle
-		Name="ModernFlyouts"
-		Publisher="CN=E3B4A0F6-E459-414C-8DFB-ABEAB07C9242"
-		Version="0.9.0.0"
-		Uri="https://github.com/ModernFlyouts-Community/ModernFlyouts/releases/download/0.9.0/ModernFlyouts_0.9.0.0_neutral.Msixbundle" />
+		Name="Astear17.GlobalFlyouts"
+		Publisher="CN=Astear17"
+		Version="0.9.3.1"
+		Uri="https://github.com/Astear17/GlobalFlyouts/releases/download/v0.9.3.1/GlobalFlyouts_0.9.3.1_x86_x64.msixbundle" />
 
 	<UpdateSettings>
 		<OnLaunch HoursBetweenUpdateChecks="1" ShowPrompt="false"/>

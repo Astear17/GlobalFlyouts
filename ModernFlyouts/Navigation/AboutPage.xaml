@@ -15,6 +15,14 @@
                        Text="{x:Static local:Program.AppName}" />
             <Image Source="/Assets/Images/ModernFlyouts_128.png" HorizontalAlignment="Left" Height="128" />
             <TextBlock TextWrapping="Wrap" Text="{x:Static resx:Strings.About_AppDescription}" />
+            <TextBlock TextWrapping="Wrap" Margin="0,8,0,0">
+                <Run FontWeight="SemiBold" Text="Fork disclosure: " />
+                <Run Text="GlobalFlyouts is a fork by Astear17 of ModernFlyouts, based on the upstream 0.9.3 release tag." />
+            </TextBlock>
+            <TextBlock TextWrapping="Wrap"
+                       Text="This fork preserves the original ModernFlyouts UI and modules while adding an enhanced media backend, session priority policy, artwork caching, timeline/progress handling, and fallback app identity resolution." />
+            <ui:HyperlinkButton Content="Original ModernFlyouts project"
+                                NavigateUri="https://github.com/ModernFlyouts-Community/ModernFlyouts" />
             <TextBlock TextWrapping="Wrap" FontWeight="Bold" FontStyle="Italic" Text="{x:Static resx:Strings.About_FileABug}" />
             <TextBlock>
                 <Run Text="{x:Static resx:Strings.About_Version}" />
@@ -23,13 +31,13 @@
                 </Bold>
             </TextBlock>
             <ui:HyperlinkButton Content="{x:Static resx:Strings.About_GitHub}"
-                                NavigateUri="https://github.com/ModernFlyouts-Community/ModernFlyouts" />
+                                NavigateUri="https://github.com/Astear17/GlobalFlyouts" />
             <ui:HyperlinkButton Content="{x:Static resx:Strings.About_Contributors}"
-                                NavigateUri="https://github.com/ModernFlyouts-Community/ModernFlyouts/graphs/contributors" />
+                                NavigateUri="https://github.com/Astear17/GlobalFlyouts/graphs/contributors" />
             <ui:HyperlinkButton Content="{x:Static resx:Strings.About_Dependencies}"
-                                NavigateUri="https://github.com/ModernFlyouts-Community/ModernFlyouts/network/dependencies" />
+                                NavigateUri="https://github.com/Astear17/GlobalFlyouts/network/dependencies" />
             <ui:HyperlinkButton Content="{x:Static resx:Strings.About_OpenNewIssue}"
-                                NavigateUri="https://github.com/ModernFlyouts-Community/ModernFlyouts/issues/new/choose" />
+                                NavigateUri="https://github.com/Astear17/GlobalFlyouts/issues/new/choose" />
             <Button Style="{DynamicResource ButtonRevealStyle}"
                     Content="{x:Static resx:Strings.About_RateAndReview}" Click="RateAndReviewButton_Click" />
         </ui:SimpleStackPanel>

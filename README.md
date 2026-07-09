@@ -1,16 +1,30 @@
 ![ModernFlyouts](ModernFlyouts/Assets/Images/ModernFlyouts_128.png)
-# ModernFlyouts
+# GlobalFlyouts
 
 #### An open source, modern, and **Fluent Design-based** replacement for the old **Metro-themed** flyouts present in **Windows 10**.
 
 [![Microsoft Store](https://img.shields.io/badge/Microsoft-Store-blue?style=flat&logo=microsoft)](https://www.microsoft.com/store/apps/9MT60QV066RP?ocid=badge)
-[![Github All Releases](https://img.shields.io/github/downloads/ModernFlyouts-Community/ModernFlyouts/total.svg?style=flat&logo=github)](https://github.com/ModernFlyouts-Community/ModernFlyouts/releases)
-[![GitHub release](https://img.shields.io/github/release/ModernFlyouts-Community/ModernFlyouts.svg?style=flat&logo=github)](https://github.com/ModernFlyouts-Community/ModernFlyouts/releases)
+[![Github All Releases](https://img.shields.io/github/downloads/Astear17/GlobalFlyouts/total.svg?style=flat&logo=github)](https://github.com/Astear17/GlobalFlyouts/releases)
+[![GitHub release](https://img.shields.io/github/release/Astear17/GlobalFlyouts.svg?style=flat&logo=github)](https://github.com/Astear17/GlobalFlyouts/releases)
 [![Telegram](https://img.shields.io/badge/Telegram-channel-blue?style=flat&logo=telegram)](https://t.me/modernflyouts)
 [![Discord](https://discordapp.com/api/guilds/772367965307404298/widget.png)](https://discord.gg/TcYskeyaYE)
 
 
 [Overview](#overview) • [Features](#features) • [System Requirements](#system-requirements) • [Installation](#installation) • [Connect with us](#connect-with-us) • [Contributing](#contributing) • [Screenshots](#screenshots)
+
+## Fork disclosure
+
+GlobalFlyouts is a fork by Astear17 of the original [ModernFlyouts](https://github.com/ModernFlyouts-Community/ModernFlyouts) project by the ModernFlyouts community, based on the upstream `0.9.3` release tag. The original project is MIT licensed; this fork keeps the original license and notices intact.
+
+This fork preserves the original ModernFlyouts UI, flyout modules, settings structure, and attribution while adding and maintaining media-backend work on top of the `0.9.3` base. Current fork-specific changes include:
+
+- Enhanced GSMTC media backend wiring for richer session state and playback controls.
+- Session priority policy for choosing the most relevant active media session.
+- Artwork caching and timeline/progress handling improvements.
+- Fallback app display-name and icon resolution for unpackaged/Electron-style media apps.
+- Build/package fixes needed to produce installable MSIX bundles from this fork.
+
+Unless stated otherwise, the original ModernFlyouts credits, dependency notices, and MIT license terms still apply.
 
 ## Overview
 
@@ -52,19 +66,39 @@ This project has its roots in [AudioFlyout](https://github.com/ADeltaX/AudioFlyo
 
 ## Installation
 
-Modern Flyouts is available for you to install via [GitHub](https://github.com/ModernFlyouts-Community/ModernFlyouts/releases/latest), **winget** and the [Microsoft Store](https://www.microsoft.com/store/apps/9MT60QV066RP).
+GlobalFlyouts packages are built from this fork. The original ModernFlyouts app remains available separately via [GitHub](https://github.com/ModernFlyouts-Community/ModernFlyouts/releases/latest), **winget**, and the [Microsoft Store](https://www.microsoft.com/store/apps/9MT60QV066RP).
 
-All the distribution methods mentioned above are supported, however installing the app from the **Microsoft Store** is **recommended** as it is easier to install and will automatically remain up to date.
+**PowerShell installer:**
 
-**Microsoft Store:**
+Download and run the bootstrap installer from this fork with GitHub Raw:
+
+```powershell
+curl.exe -L "https://raw.githubusercontent.com/Astear17/GlobalFlyouts/main/Install.ps1" -o "$env:TEMP\GlobalFlyouts-Install.ps1"
+powershell -ExecutionPolicy Bypass -File "$env:TEMP\GlobalFlyouts-Install.ps1"
+```
+
+To install a specific release tag:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$env:TEMP\GlobalFlyouts-Install.ps1" -Version v0.9.3.1
+```
+
+The bootstrap downloads the release ZIP that contains the generated MSIX bundle, dependencies, certificate, and generated package `Install.ps1`, then runs that generated installer locally.
+
+**Manual GitHub install:**
+
+1. Go to the latest release on this fork's Releases page.
+2. Download the latest `GlobalFlyouts-*-msixbundle.zip` asset.
+3. Extract the ZIP.
+4. Run the extracted `Install.ps1` from PowerShell and launch the app from the **Start Menu**.
+
+If the release is test-signed, Windows may prompt you to trust the included certificate before sideloading the MSIX bundle. Production signing requires a real code-signing certificate.
+
+**Original ModernFlyouts distribution:**
+
+The Microsoft Store, winget, and Chocolatey entries below install the upstream ModernFlyouts package, not this GlobalFlyouts fork.
 
 <a href='https://www.microsoft.com/store/apps/9MT60QV066RP?ocid=badge'><img src='https://developer.microsoft.com/en-us/store/badges/images/English_get-it-from-MS.png' alt='Microsoft Store' width='160'/></a>
-
-**GitHub:**
-
-1. Go to the [latest release on the Releases page](https://github.com/ModernFlyouts-Community/ModernFlyouts/releases/latest).
-2. Download the latest ***.msixbundle** file from the assets.
-3. Install the downloaded ***.msixbundle** file and launch the app from the **Start Menu**.
 
 **winget:**
 
@@ -90,6 +124,8 @@ For guidance on developing for ModernFlyouts, please read the [developer guide](
 ## NOTES
 
 ### Credits
+
+This fork is maintained by Astear17 and is based on [ModernFlyouts](https://github.com/ModernFlyouts-Community/ModernFlyouts), starting from the upstream `0.9.3` release tag. Credit for the original application, design, modules, localization, and project history belongs to the ModernFlyouts project and contributors listed below.
 
 First of all, we must thank our good friend **[@ADeltaX](https://github.com/ADeltaX/)** for one of his marvelous works **"[AudioFlyout](https://github.com/ADeltaX/AudioFlyout)"**. Since the project was stale for a while and it lacked support for brightness and airplane mode flyouts, this project was born. He not only let us use his source code but also helped us improve this app. And he still supports us 😄.
 I must admit that this project wouldn't be here *how it is* without **[@ADeltaX](https://github.com/ADeltaX/)**. Our heartful thanks to him ❤.

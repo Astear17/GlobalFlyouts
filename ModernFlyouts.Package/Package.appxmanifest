@@ -9,8 +9,8 @@
   IgnorableNamespaces="uap rescap">
 
   <Identity
-    Name="32669SamG.ModernFlyouts"
-    Publisher="CN=Sam"
+    Name="Astear17.GlobalFlyouts"
+    Publisher="CN=Astear17"
     Version="0.9.3.1" />
 
   <Properties>
@@ -81,9 +81,9 @@
             Executable="ModernFlyoutsHost.exe"
             EntryPoint="Windows.FullTrustApplication">
           <uap5:StartupTask
-            TaskId="ModernFlyoutsStartupId"
+            TaskId="GlobalFlyoutsStartupId"
             Enabled="true"
-            DisplayName="ModernFlyouts" />
+            DisplayName="GlobalFlyouts" />
         </uap5:Extension>
       </Extensions>
     </Application>

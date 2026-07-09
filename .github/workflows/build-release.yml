@@ -1,0 +1,195 @@
+name: Build & Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: Build configuration
+        required: true
+        default: Debug
+        type: choice
+        options:
+          - Debug
+          - Release
+  push:
+    tags:
+      - 'v*.*.*.*'
+      - '*.*.*.*'
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+
+env:
+  SOLUTION_PATH: ModernFlyouts.sln
+  PACKAGE_PROJECT: ModernFlyouts.Package\ModernFlyouts.Package.wapproj
+  PACKAGE_MANIFEST: ModernFlyouts.Package\Package.appxmanifest
+  PACKAGE_OUTPUT_DIR: ModernFlyouts.Package\AppPackages\CI\
+  APPX_BUNDLE_PLATFORMS: x86|x64
+  CERT_PASSWORD: Astear17-GlobalFlyouts-CI-Test-Cert
+  MSIX_PFX_BASE64: ${{ secrets.MSIX_PFX_BASE64 }}
+  MSIX_PFX_PASSWORD: ${{ secrets.MSIX_PFX_PASSWORD }}
+
+jobs:
+  build:
+    name: Build MSIX bundle
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup .NET SDKs
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            6.0.x
+            9.0.x
+
+      - name: Resolve package version and release tag
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$manifest = Get-Content $env:PACKAGE_MANIFEST
+          $packageVersion = $manifest.Package.Identity.Version
+          if ($packageVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+            throw "Package.appxmanifest Identity.Version must be four numeric parts, but was '$packageVersion'."
+          }
+
+          $eventName = '${{ github.event_name }}'
+          $tagName = ''
+          if ($eventName -eq 'release') {
+            $tagName = '${{ github.event.release.tag_name }}'
+          } elseif ('${{ github.ref_type }}' -eq 'tag') {
+            $tagName = '${{ github.ref_name }}'
+          }
+
+          if ($tagName) {
+            if ($tagName -notmatch '^v?\d+\.\d+\.\d+\.\d+$') {
+              throw "Release tag '$tagName' must be a four-part app version, with optional leading v, for example v$packageVersion."
+            }
+
+            $tagVersion = $tagName -replace '^v', ''
+            if ($tagVersion -ne $packageVersion) {
+              throw "Release tag '$tagName' does not match Package.appxmanifest Identity.Version '$packageVersion'."
+            }
+          }
+
+          "package_version=$packageVersion" >> $env:GITHUB_OUTPUT
+          "tag_name=$tagName" >> $env:GITHUB_OUTPUT
+
+      - name: Prepare package signing certificate
+        id: signing
+        shell: pwsh
+        run: |
+          $pfxPath = Join-Path $env:GITHUB_WORKSPACE 'ModernFlyouts.Package\ModernFlyouts.Package_TemporaryKey.pfx'
+          $cerPath = Join-Path $env:GITHUB_WORKSPACE 'ModernFlyouts.Package\ModernFlyouts.Package_TemporaryKey.cer'
+
+          if ($env:MSIX_PFX_BASE64) {
+            [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:MSIX_PFX_BASE64))
+            $password = $env:MSIX_PFX_PASSWORD
+            if (-not $password) {
+              throw 'MSIX_PFX_PASSWORD must be set when MSIX_PFX_BASE64 is provided.'
+            }
+
+            $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
+            $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
+            Export-Certificate -Cert $cert -FilePath $cerPath -Force | Out-Null
+            "certificate_source=secret" >> $env:GITHUB_OUTPUT
+            "certificate_thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+            "PACKAGE_CERT_PASSWORD=$password" >> $env:GITHUB_ENV
+          } else {
+            $password = $env:CERT_PASSWORD
+            $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
+            $cert = New-SelfSignedCertificate `
+              -Type Custom `
+              -Subject 'CN=Astear17' `
+              -KeyUsage DigitalSignature `
+              -FriendlyName 'Astear17 GlobalFlyouts CI Test Certificate' `
+              -CertStoreLocation Cert:\CurrentUser\My `
+              -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3')
+
+            Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $securePassword -Force | Out-Null
+            Export-Certificate -Cert $cert -FilePath $cerPath -Force | Out-Null
+            "certificate_source=self-signed-test" >> $env:GITHUB_OUTPUT
+            "certificate_thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+            "PACKAGE_CERT_PASSWORD=$password" >> $env:GITHUB_ENV
+          }
+
+      - name: Restore and build package
+        shell: pwsh
+        run: |
+          $configuration = '${{ inputs.configuration }}'
+          if (-not $configuration) {
+            $configuration = 'Debug'
+          }
+
+          msbuild $env:SOLUTION_PATH `
+            /restore `
+            /m `
+            /nr:false `
+            /p:Configuration=$configuration `
+            /p:Platform=x64 `
+            "/p:AppxBundlePlatforms=$env:APPX_BUNDLE_PLATFORMS" `
+            "/p:AppxPackageDir=$env:PACKAGE_OUTPUT_DIR" `
+            /p:AppxPackageSigningEnabled=true `
+            "/p:PackageCertificateKeyFile=ModernFlyouts.Package_TemporaryKey.pfx" `
+            "/p:PackageCertificatePassword=$env:PACKAGE_CERT_PASSWORD" `
+            "/p:PackageCertificateThumbprint=${{ steps.signing.outputs.certificate_thumbprint }}" `
+            /v:minimal
+
+      - name: Write signing notice
+        shell: pwsh
+        run: |
+          $notice = @"
+          # Package signing notice
+
+          Package version: ${{ steps.version.outputs.package_version }}
+          Certificate source: ${{ steps.signing.outputs.certificate_source }}
+
+          If certificate source is `self-signed-test`, the package is not production-signed. Installers must trust the generated `.cer` certificate before sideloading the `.msixbundle`.
+          The package manifest publisher is `CN=Astear17`, so any production certificate supplied through `MSIX_PFX_BASE64` must match that publisher identity or the MSIX signing step will fail.
+          "@
+
+          $noticePath = Join-Path $env:GITHUB_WORKSPACE 'ModernFlyouts.Package\AppPackages\CI\SIGNING-NOTICE.md'
+          New-Item -ItemType Directory -Path (Split-Path $noticePath) -Force | Out-Null
+          Set-Content -Path $noticePath -Value $notice -Encoding UTF8
+
+      - name: Create release package ZIP
+        id: archive
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.package_version }}'
+          $archivePath = Join-Path $env:GITHUB_WORKSPACE "ModernFlyouts.Package\AppPackages\GlobalFlyouts-$version-msixbundle.zip"
+          if (Test-Path $archivePath) {
+            Remove-Item $archivePath -Force
+          }
+
+          Compress-Archive `
+            -Path (Join-Path $env:GITHUB_WORKSPACE 'ModernFlyouts.Package\AppPackages\CI\*') `
+            -DestinationPath $archivePath `
+            -Force
+
+          "archive_path=$archivePath" >> $env:GITHUB_OUTPUT
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GlobalFlyouts-${{ steps.version.outputs.package_version }}-msixbundle
+          path: |
+            ModernFlyouts.Package\AppPackages\CI\**
+            ModernFlyouts.Package\AppPackages\GlobalFlyouts-${{ steps.version.outputs.package_version }}-msixbundle.zip
+
+      - name: Attach assets to GitHub release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag_name }}
+          files: |
+            ModernFlyouts.Package\AppPackages\GlobalFlyouts-${{ steps.version.outputs.package_version }}-msixbundle.zip
+            ModernFlyouts.Package\AppPackages\CI\SIGNING-NOTICE.md

@@ -6,7 +6,7 @@ namespace ModernFlyouts.Helpers
 {
     internal class StartupHelper
     {
-        private const string StartupId = "ModernFlyoutsStartupId";
+        private const string StartupId = "GlobalFlyoutsStartupId";
 
         public static async Task<bool> GetRunAtStartupEnabled()
         {

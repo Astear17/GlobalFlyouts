@@ -2,6 +2,14 @@
 
 This software incorporates material from third parties.
 
+## GlobalFlyouts fork attribution
+
+GlobalFlyouts is a fork by Astear17 of the original ModernFlyouts project:
+
+**Source:** https://github.com/ModernFlyouts-Community/ModernFlyouts
+
+This fork is based on the upstream `0.9.3` release tag and keeps the original MIT license, notices, project credits, and third-party attributions intact. Fork-specific changes include the enhanced media backend, session priority policy, artwork caching, timeline/progress handling, fallback app identity resolution, and build/package fixes.
+
 ## ModernFlyouts: Audio-flyout module
 
 ### ADeltaX's AudioFlyout
