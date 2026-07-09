@@ -51,7 +51,9 @@
   </PropertyGroup>
   <PropertyGroup>
     <AppxBundle>Always</AppxBundle>
-    <PackageCertificateThumbprint>1763E89B1A6D02D8D3CCF794ADFF6130472AC7B5</PackageCertificateThumbprint>
+    <PackageCertificateKeyFile>ModernFlyouts.Package_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateThumbprint>E03FA85869B64F864E0558D1F5BACAB82748D35D</PackageCertificateThumbprint>
+    <AppxPackageSigningEnabled Condition="!Exists('$(MSBuildProjectDirectory)\$(PackageCertificateKeyFile)')">False</AppxPackageSigningEnabled>
   </PropertyGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
@@ -111,7 +113,10 @@
     <Content Include="Images\Wide310x150Logo.scale-150.png" />
     <Content Include="Images\Wide310x150Logo.scale-200.png" />
     <Content Include="Images\Wide310x150Logo.scale-400.png" />
-    <PRIResource Include="Strings\en-us\Resources.resw" />
+    <PRIResource Include="Strings\en-us\Resources.resw">
+      <SubType>Designer</SubType>
+    </PRIResource>
+    <None Include="ModernFlyouts.Package_TemporaryKey.cer" />
     <None Include="ModernFlyouts.Package_TemporaryKey.pfx" />
     <Content Include="Package.appinstaller" />
     <Content Include="priconfig.default.xml" />
@@ -134,6 +139,21 @@
         </SourceProject>
       </_FilteredNonWapProjProjectOutput>
     </ItemGroup>
+  </Target>
+  <PropertyGroup>
+    <ModernFlyoutsPackageRuntimeIdentifier Condition="'$(Platform)' == 'x86'">win10-x86</ModernFlyoutsPackageRuntimeIdentifier>
+    <ModernFlyoutsPackageRuntimeIdentifier Condition="'$(Platform)' == 'x64'">win10-x64</ModernFlyoutsPackageRuntimeIdentifier>
+    <ModernFlyoutsPackageRuntimeIdentifier Condition="'$(Platform)' == 'ARM64' Or '$(Platform)' == 'arm64'">win10-arm64</ModernFlyoutsPackageRuntimeIdentifier>
+  </PropertyGroup>
+  <Target Name="CopyModernFlyoutsAppConfigToPackageLayout"
+          AfterTargets="_CreatePackageLayout"
+          Condition="'$(ModernFlyoutsPackageRuntimeIdentifier)' != ''">
+    <PropertyGroup>
+      <ModernFlyoutsAppConfigSource>$(MSBuildThisFileDirectory)..\ModernFlyouts\bin\$(Platform)\Release\net6.0-windows10.0.19041.0\$(ModernFlyoutsPackageRuntimeIdentifier)\ModernFlyouts.dll.config</ModernFlyoutsAppConfigSource>
+    </PropertyGroup>
+    <Copy SourceFiles="$(ModernFlyoutsAppConfigSource)"
+          DestinationFiles="$(AppxLayoutDir)ModernFlyouts.dll.config"
+          Condition="Exists('$(ModernFlyoutsAppConfigSource)')" />
   </Target>
   <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.targets" />
 </Project>

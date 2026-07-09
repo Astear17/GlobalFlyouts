@@ -18,6 +18,10 @@
     <DefineConstants>BETA</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DefineConstants>$(DefineConstants);APP_CENTER</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\ModernFlyouts.Core\ModernFlyouts.Core.csproj" />
   </ItemGroup>

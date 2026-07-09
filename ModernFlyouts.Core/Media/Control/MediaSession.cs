@@ -26,7 +26,14 @@ namespace ModernFlyouts.Core.Media.Control
         public bool IsPlayEnabled
         {
             get => isPlayEnabled;
-            protected set => SetProperty(ref isPlayEnabled, value);
+            protected set
+            {
+                if (SetProperty(ref isPlayEnabled, value))
+                {
+                    NotifyCommandCanExecuteChanged(PlayCommand);
+                    NotifyCommandCanExecuteChanged(PlayOrPauseCommand);
+                }
+            }
         }
 
         private bool isPauseEnabled;
@@ -34,7 +41,14 @@ namespace ModernFlyouts.Core.Media.Control
         public bool IsPauseEnabled
         {
             get => isPauseEnabled;
-            protected set => SetProperty(ref isPauseEnabled, value);
+            protected set
+            {
+                if (SetProperty(ref isPauseEnabled, value))
+                {
+                    NotifyCommandCanExecuteChanged(PauseCommand);
+                    NotifyCommandCanExecuteChanged(PlayOrPauseCommand);
+                }
+            }
         }
 
         private bool isPlayOrPauseEnabled;
@@ -42,7 +56,13 @@ namespace ModernFlyouts.Core.Media.Control
         public bool IsPlayOrPauseEnabled
         {
             get => isPlayOrPauseEnabled;
-            protected set => SetProperty(ref isPlayOrPauseEnabled, value);
+            protected set
+            {
+                if (SetProperty(ref isPlayOrPauseEnabled, value))
+                {
+                    NotifyCommandCanExecuteChanged(PlayOrPauseCommand);
+                }
+            }
         }
 
         private bool isPreviousEnabled;
@@ -50,7 +70,13 @@ namespace ModernFlyouts.Core.Media.Control
         public bool IsPreviousEnabled
         {
             get => isPreviousEnabled;
-            protected set => SetProperty(ref isPreviousEnabled, value);
+            protected set
+            {
+                if (SetProperty(ref isPreviousEnabled, value))
+                {
+                    NotifyCommandCanExecuteChanged(PreviousTrackCommand);
+                }
+            }
         }
 
         private bool isNextEnabled;
@@ -58,7 +84,13 @@ namespace ModernFlyouts.Core.Media.Control
         public bool IsNextEnabled
         {
             get => isNextEnabled;
-            protected set => SetProperty(ref isNextEnabled, value);
+            protected set
+            {
+                if (SetProperty(ref isNextEnabled, value))
+                {
+                    NotifyCommandCanExecuteChanged(NextTrackCommand);
+                }
+            }
         }
 
         private bool isShuffleEnabled;
@@ -71,6 +103,7 @@ namespace ModernFlyouts.Core.Media.Control
                 if (SetProperty(ref isShuffleEnabled, value))
                 {
                     CalculateMoreControlsButtonVisibility();
+                    NotifyCommandCanExecuteChanged(ChangeShuffleActiveCommand);
                 }
             }
         }
@@ -85,6 +118,7 @@ namespace ModernFlyouts.Core.Media.Control
                 if (SetProperty(ref isRepeatEnabled, value))
                 {
                     CalculateMoreControlsButtonVisibility();
+                    NotifyCommandCanExecuteChanged(ChangeAutoRepeatModeCommand);
                 }
             }
         }
@@ -99,6 +133,7 @@ namespace ModernFlyouts.Core.Media.Control
                 if (SetProperty(ref isStopEnabled, value))
                 {
                     CalculateMoreControlsButtonVisibility();
+                    NotifyCommandCanExecuteChanged(StopCommand);
                 }
             }
         }
@@ -373,6 +408,14 @@ namespace ModernFlyouts.Core.Media.Control
             else
             {
                 Play();
+            }
+        }
+
+        private static void NotifyCommandCanExecuteChanged(ICommand command)
+        {
+            if (command is RelayCommand relayCommand)
+            {
+                relayCommand.NotifyCanExecuteChanged();
             }
         }
 

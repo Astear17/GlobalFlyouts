@@ -82,6 +82,8 @@
 
             <Grid x:Name="AppInfoPanel" Margin="0,15,0,0" Grid.RowSpan="2" Grid.Column="1"
                   VerticalAlignment="Top" Cursor="Hand"
+                  Visibility="{Binding Source={x:Static local:FlyoutHandler.Instance}, Path=AudioFlyoutHelper.ShowPlayerInfo,
+                      Converter={StaticResource BooleanToVisibilityConverter}}"
                   input:InputHelper.IsTapEnabled="True" input:InputHelper.TappedCommand="{Binding ActivateMediaSourceCommand}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -108,18 +110,27 @@
             </Grid>
 
             <Grid Margin="15,10" Grid.Row="1" Grid.ColumnSpan="3"
-                  IsEnabled="{Binding IsTimelinePropertiesEnabled}">
+                  IsEnabled="{Binding IsPlaybackPositionEnabled}">
+                <Grid.Visibility>
+                    <MultiBinding Converter="{StaticResource BooleanAndToVisibilityConverter}">
+                        <Binding Path="IsPlaybackPositionEnabled" />
+                        <Binding Source="{x:Static local:FlyoutHandler.Instance}" Path="AudioFlyoutHelper.ShowSeekbar" />
+                    </MultiBinding>
+                </Grid.Visibility>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="16" />
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Bottom"
                            Text="{Binding PlaybackPosition, Converter={StaticResource TimeSpanToStringConverter}}" />
-                <Slider IsMoveToPointEnabled="True"
+                <Slider x:Name="PlaybackSlider" IsMoveToPointEnabled="True"
                         IsEnabled="{Binding IsPlaybackPositionEnabled}"
                         Minimum="{Binding TimelineStartTime, Mode=OneWay, Converter={StaticResource TimeSpanToNumberConverter}}"
                         Maximum="{Binding TimelineEndTime, Mode=OneWay, Converter={StaticResource TimeSpanToNumberConverter}}"
-                        Value="{Binding PlaybackPosition, Converter={StaticResource TimeSpanToNumberConverter}}" />
+                        Value="{Binding PlaybackPosition, Converter={StaticResource TimeSpanToNumberConverter}}"
+                        PreviewMouseLeftButtonDown="PlaybackSlider_PreviewMouseLeftButtonDown"
+                        PreviewMouseLeftButtonUp="PlaybackSlider_PreviewMouseLeftButtonUp"
+                        LostMouseCapture="PlaybackSlider_LostMouseCapture" />
                 <TextBlock Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                            Text="{Binding TimelineEndTime, Converter={StaticResource TimeSpanToStringConverter}}" />
             </Grid>
@@ -133,12 +144,24 @@
                                       IsChecked="{Binding IsShuffleActive, Mode=OneWay}"
                                       ToolTip="{Binding IsShuffleActive, Converter={StaticResource ShuffleButtonTooltipConverter}}"
                                       Style="{DynamicResource MediaToggleButtonStyle}">
+                            <ToggleButton.Visibility>
+                                <MultiBinding Converter="{StaticResource BooleanAndToVisibilityConverter}">
+                                    <Binding Path="IsShuffleEnabled" />
+                                    <Binding Source="{x:Static local:FlyoutHandler.Instance}" Path="AudioFlyoutHelper.ShowShuffle" />
+                                </MultiBinding>
+                            </ToggleButton.Visibility>
                             <ui:FontIcon Glyph="{x:Static utils:CommonGlyphs.Shuffle}" FontSize="16.0" />
                         </ToggleButton>
                         <ToggleButton x:Name="RepeatButton" Command="{Binding ChangeAutoRepeatModeCommand}"
                                       IsChecked="{Binding AutoRepeatMode, Mode=OneWay, Converter={StaticResource RepeatButtonIsCheckedConverter}}"
                                       ToolTip="{Binding AutoRepeatMode, Converter={StaticResource RepeatButtonTooltipConverter}}"
                                       Margin="40,0" Style="{DynamicResource MediaToggleButtonStyle}">
+                            <ToggleButton.Visibility>
+                                <MultiBinding Converter="{StaticResource BooleanAndToVisibilityConverter}">
+                                    <Binding Path="IsRepeatEnabled" />
+                                    <Binding Source="{x:Static local:FlyoutHandler.Instance}" Path="AudioFlyoutHelper.ShowRepeat" />
+                                </MultiBinding>
+                            </ToggleButton.Visibility>
                             <ui:FontIcon Glyph="{Binding AutoRepeatMode, Converter={StaticResource RepeatButtonGlyphConverter}}" FontSize="16" />
                         </ToggleButton>
                         <Button x:Name="StopButton" Command="{Binding StopCommand}"

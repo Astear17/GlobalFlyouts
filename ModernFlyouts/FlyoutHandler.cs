@@ -400,6 +400,7 @@ namespace ModernFlyouts
 
             OnScreenFlyoutView.FlyoutHelper = helper;
             OnScreenFlyoutWindow.IsOpen = true;
+            helper.OnFlyoutShown();
             OnScreenFlyoutWindow.StartCloseTimer();
         }
 

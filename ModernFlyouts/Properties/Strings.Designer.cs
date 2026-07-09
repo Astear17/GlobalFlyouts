@@ -176,6 +176,33 @@ namespace ModernFlyouts.Properties {
                 return ResourceManager.GetString("Align", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to App filter list (comma, semicolon, or line separated).
+        /// </summary>
+        public static string AudioFlyoutHelper_AppFilterList {
+            get {
+                return ResourceManager.GetString("AudioFlyoutHelper.AppFilterList", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to App filtering.
+        /// </summary>
+        public static string AudioFlyoutHelper_AppFilteringMode {
+            get {
+                return ResourceManager.GetString("AudioFlyoutHelper.AppFilteringMode", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Enhanced media backend.
+        /// </summary>
+        public static string AudioFlyoutHelper_EnhancedMediaBackend {
+            get {
+                return ResourceManager.GetString("AudioFlyoutHelper.EnhancedMediaBackend", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Number of sessions to show.
@@ -194,6 +221,24 @@ namespace ModernFlyouts.Properties {
                 return ResourceManager.GetString("AudioFlyoutHelper.NoDevices", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Pinned player app ID.
+        /// </summary>
+        public static string AudioFlyoutHelper_PinnedAppUserModelId {
+            get {
+                return ResourceManager.GetString("AudioFlyoutHelper.PinnedAppUserModelId", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Pinned player priority.
+        /// </summary>
+        public static string AudioFlyoutHelper_PinnedAppPriority {
+            get {
+                return ResourceManager.GetString("AudioFlyoutHelper.PinnedAppPriority", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Media sessions panel orientation.
@@ -210,6 +255,42 @@ namespace ModernFlyouts.Properties {
         public static string AudioFlyoutHelper_ShowGSMTCInVolumeFlyout {
             get {
                 return ResourceManager.GetString("AudioFlyoutHelper.ShowGSMTCInVolumeFlyout", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show player name.
+        /// </summary>
+        public static string AudioFlyoutHelper_ShowPlayerInfo {
+            get {
+                return ResourceManager.GetString("AudioFlyoutHelper.ShowPlayerInfo", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show repeat control.
+        /// </summary>
+        public static string AudioFlyoutHelper_ShowRepeat {
+            get {
+                return ResourceManager.GetString("AudioFlyoutHelper.ShowRepeat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show seekbar.
+        /// </summary>
+        public static string AudioFlyoutHelper_ShowSeekbar {
+            get {
+                return ResourceManager.GetString("AudioFlyoutHelper.ShowSeekbar", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show shuffle control.
+        /// </summary>
+        public static string AudioFlyoutHelper_ShowShuffle {
+            get {
+                return ResourceManager.GetString("AudioFlyoutHelper.ShowShuffle", resourceCulture);
             }
         }
         

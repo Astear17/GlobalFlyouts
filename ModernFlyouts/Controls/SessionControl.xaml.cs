@@ -4,6 +4,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
@@ -90,6 +91,30 @@ namespace ModernFlyouts.Controls
             {
                 EndTrackTransition();
             });
+        }
+
+        private void PlaybackSlider_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (_mediaSession is EnhancedGSMTCMediaSession enhancedSession)
+            {
+                enhancedSession.BeginTimelineScrub();
+            }
+        }
+
+        private void PlaybackSlider_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_mediaSession is EnhancedGSMTCMediaSession enhancedSession)
+            {
+                enhancedSession.EndTimelineScrub();
+            }
+        }
+
+        private void PlaybackSlider_LostMouseCapture(object sender, MouseEventArgs e)
+        {
+            if (_mediaSession is EnhancedGSMTCMediaSession enhancedSession)
+            {
+                enhancedSession.EndTimelineScrub();
+            }
         }
 
         private void BeginTrackTransition()

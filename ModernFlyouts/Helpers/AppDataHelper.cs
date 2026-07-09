@@ -1,4 +1,5 @@
 ﻿using ModernFlyouts.Controls;
+using ModernFlyouts.Core.Media.Control;
 using ModernFlyouts.Core.UI;
 using ModernFlyouts.UI;
 using ModernFlyouts.UI.Media;
@@ -210,6 +211,66 @@ namespace ModernFlyouts.Helpers
         public static bool ShowVolumeControlInGSMTCFlyout
         {
             get => GetValue(DefaultValuesStore.ShowVolumeControlInGSMTCFlyout);
+            set => SetValue(value);
+        }
+
+        public static EnhancedMediaBackendMode EnhancedMediaBackendMode
+        {
+            get => GetValue(DefaultValuesStore.EnhancedMediaBackendMode);
+            set => SetValue(value);
+        }
+
+        public static bool EnhancedMediaBackendLastPreflightSucceeded
+        {
+            get => GetValue(DefaultValuesStore.EnhancedMediaBackendLastPreflightSucceeded);
+            set => SetValue(value);
+        }
+
+        public static bool ShowMediaPlayerInfo
+        {
+            get => GetValue(DefaultValuesStore.ShowMediaPlayerInfo);
+            set => SetValue(value);
+        }
+
+        public static bool ShowMediaSeekbar
+        {
+            get => GetValue(DefaultValuesStore.ShowMediaSeekbar);
+            set => SetValue(value);
+        }
+
+        public static bool ShowMediaShuffle
+        {
+            get => GetValue(DefaultValuesStore.ShowMediaShuffle);
+            set => SetValue(value);
+        }
+
+        public static bool ShowMediaRepeat
+        {
+            get => GetValue(DefaultValuesStore.ShowMediaRepeat);
+            set => SetValue(value);
+        }
+
+        public static string PinnedMediaAppUserModelId
+        {
+            get => GetValue(string.Empty);
+            set => SetValue(value);
+        }
+
+        public static PinnedAppPriorityMode PinnedAppPriorityMode
+        {
+            get => GetValue(DefaultValuesStore.PinnedAppPriorityMode);
+            set => SetValue(value);
+        }
+
+        public static MediaAppFilteringMode MediaAppFilteringMode
+        {
+            get => GetValue(DefaultValuesStore.MediaAppFilteringMode);
+            set => SetValue(value);
+        }
+
+        public static string MediaAppFilterList
+        {
+            get => GetValue(string.Empty);
             set => SetValue(value);
         }
 

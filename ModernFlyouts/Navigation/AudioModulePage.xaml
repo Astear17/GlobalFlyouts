@@ -7,6 +7,7 @@
       xmlns:toolkit="http://schemas.modernwpf.com/toolkit"
       xmlns:controls="clr-namespace:ModernFlyouts.Controls"
       xmlns:utils="clr-namespace:ModernFlyouts.Utilities"
+      xmlns:mediaControl="clr-namespace:ModernFlyouts.Core.Media.Control;assembly=ModernFlyouts.Core"
       xmlns:resx="clr-namespace:ModernFlyouts.Properties"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800" DataContext="{x:Static local:FlyoutHandler.Instance}">
@@ -23,6 +24,16 @@
                         Margin="-10,0" Style="{DynamicResource TabControlPivotStyle}">
                 <TabItem Header="{x:Static resx:Strings.GeneralSettings}">
                     <ui:SimpleStackPanel Margin="10" Spacing="10">
+                        <ui:RadioButtons Header="{x:Static resx:Strings.AudioFlyoutHelper_EnhancedMediaBackend}"
+                                         ItemTemplate="{StaticResource LocalizedEnumItemTemplate}"
+                                         ItemsSource="{toolkit:EnumValues Type=mediaControl:EnhancedMediaBackendMode}"
+                                         SelectedItem="{Binding AudioFlyoutHelper.EnhancedMediaBackendMode}" />
+                        <TextBlock Text="{Binding AudioFlyoutHelper.EnhancedBackendDiagnosticsMessage}"
+                                   TextWrapping="Wrap"
+                                   Style="{DynamicResource CaptionTextBlockStyle}"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   Visibility="{Binding AudioFlyoutHelper.EnhancedBackendDiagnosticsVisible,
+                                    Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <ui:ToggleSwitch Header="{x:Static resx:Strings.AudioFlyoutHelper_ShowGSMTCInVolumeFlyout}"
                                          IsOn="{Binding AudioFlyoutHelper.ShowGSMTCInVolumeFlyout}"
                                          OnContent="{x:Static resx:Strings.Settings_On}"
@@ -35,6 +46,18 @@
                 </TabItem>
                 <TabItem Header="{x:Static resx:Strings.Settings_Modules_Audio_Media}">
                     <ui:SimpleStackPanel Margin="10" Spacing="10">
+                        <ui:ToggleSwitch Header="{x:Static resx:Strings.AudioFlyoutHelper_ShowPlayerInfo}"
+                                         OnContent="{x:Static resx:Strings.Settings_On}" OffContent="{x:Static resx:Strings.Settings_Off}"
+                                         IsOn="{Binding AudioFlyoutHelper.ShowPlayerInfo}" />
+                        <ui:ToggleSwitch Header="{x:Static resx:Strings.AudioFlyoutHelper_ShowSeekbar}"
+                                         OnContent="{x:Static resx:Strings.Settings_On}" OffContent="{x:Static resx:Strings.Settings_Off}"
+                                         IsOn="{Binding AudioFlyoutHelper.ShowSeekbar}" />
+                        <ui:ToggleSwitch Header="{x:Static resx:Strings.AudioFlyoutHelper_ShowShuffle}"
+                                         OnContent="{x:Static resx:Strings.Settings_On}" OffContent="{x:Static resx:Strings.Settings_Off}"
+                                         IsOn="{Binding AudioFlyoutHelper.ShowShuffle}" />
+                        <ui:ToggleSwitch Header="{x:Static resx:Strings.AudioFlyoutHelper_ShowRepeat}"
+                                         OnContent="{x:Static resx:Strings.Settings_On}" OffContent="{x:Static resx:Strings.Settings_Off}"
+                                         IsOn="{Binding AudioFlyoutHelper.ShowRepeat}" />
                         <ui:ToggleSwitch Header="{x:Static resx:Strings.AudioFlyoutHelper_ThumbnailAlignment}"
                                          OnContent="{x:Static resx:Strings.Settings_Right}" OffContent="{x:Static resx:Strings.Settings_Left}"
                                          IsOn="{Binding UIManager.AlignGSMTCThumbnailToRight}" />
@@ -51,6 +74,22 @@
                                       SpinButtonPlacementMode="Inline" Value="{Binding UIManager.MaxVerticalSessionControlsCount}"
                                       Visibility="{Binding ElementName=orientationCmbBox, Path=SelectedIndex,
                                         Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=1}" />
+                        <TextBlock Text="{x:Static resx:Strings.AudioFlyoutHelper_PinnedAppUserModelId}"
+                                   Style="{DynamicResource BaseTextBlockStyle}" />
+                        <TextBox Text="{Binding AudioFlyoutHelper.PinnedMediaAppUserModelId, UpdateSourceTrigger=PropertyChanged}"
+                                 MinWidth="320" HorizontalAlignment="Left" />
+                        <ui:RadioButtons Header="{x:Static resx:Strings.AudioFlyoutHelper_PinnedAppPriority}"
+                                         ItemTemplate="{StaticResource LocalizedEnumItemTemplate}"
+                                         ItemsSource="{toolkit:EnumValues Type=mediaControl:PinnedAppPriorityMode}"
+                                         SelectedItem="{Binding AudioFlyoutHelper.PinnedAppPriorityMode}" />
+                        <ui:RadioButtons Header="{x:Static resx:Strings.AudioFlyoutHelper_AppFilteringMode}"
+                                         ItemTemplate="{StaticResource LocalizedEnumItemTemplate}"
+                                         ItemsSource="{toolkit:EnumValues Type=mediaControl:MediaAppFilteringMode}"
+                                         SelectedItem="{Binding AudioFlyoutHelper.MediaAppFilteringMode}" />
+                        <TextBlock Text="{x:Static resx:Strings.AudioFlyoutHelper_AppFilterList}"
+                                   Style="{DynamicResource BaseTextBlockStyle}" />
+                        <TextBox Text="{Binding AudioFlyoutHelper.MediaAppFilterList, UpdateSourceTrigger=PropertyChanged}"
+                                 MinWidth="320" HorizontalAlignment="Left" />
                     </ui:SimpleStackPanel>
                 </TabItem>
                 <TabItem Header="{x:Static resx:Strings.Settings_Modules_Audio_Volume}" Visibility="Collapsed">

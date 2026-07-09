@@ -63,6 +63,14 @@
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <OutDir Condition="'$(OutDir)'==''">$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(IntDir)'==''">$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <OutDir Condition="'$(OutDir)'==''">$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(IntDir)'==''">$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <PropertyGroup>
     <TargetName>DXGI</TargetName>
   </PropertyGroup>

@@ -90,6 +90,14 @@ namespace ModernFlyouts
             return false;
         }
 
+        public virtual void OnFlyoutShown()
+        {
+        }
+
+        public virtual void OnFlyoutHidden()
+        {
+        }
+
         protected void RequestShowFlyout()
         {
             ShowFlyoutRequested?.Invoke(this);

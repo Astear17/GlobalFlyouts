@@ -18,9 +18,8 @@ namespace ModernFlyouts
             Thread thread = new(() => {
                 AppLifecycleManager.StartApplication(args, () =>
                 {
-#if RELEASE
-                    Microsoft.AppCenter.AppCenter.Start("26393d67-ab03-4e26-a6db-aa76bf989c21",
-                        typeof(Microsoft.AppCenter.Analytics.Analytics), typeof(Microsoft.AppCenter.Crashes.Crashes));
+#if APP_CENTER
+                    StartAppCenter();
 #endif
                     InitializePrivateUseClasses();
 
@@ -92,6 +91,26 @@ namespace ModernFlyouts
 #if Screenshots
             FlyoutHandler.Initialized += (_, __) => Private.ScreenshotHelper.Initialize();
 #endif
+        }
+
+        private static void StartAppCenter()
+        {
+            Type appCenterType = Type.GetType("Microsoft.AppCenter.AppCenter, Microsoft.AppCenter");
+            Type analyticsType = Type.GetType("Microsoft.AppCenter.Analytics.Analytics, Microsoft.AppCenter.Analytics");
+            Type crashesType = Type.GetType("Microsoft.AppCenter.Crashes.Crashes, Microsoft.AppCenter.Crashes");
+
+            if (appCenterType == null || analyticsType == null || crashesType == null)
+            {
+                return;
+            }
+
+            appCenterType
+                .GetMethod("Start", new[] { typeof(string), typeof(Type[]) })
+                ?.Invoke(null, new object[]
+                {
+                    "26393d67-ab03-4e26-a6db-aa76bf989c21",
+                    new[] { analyticsType, crashesType }
+                });
         }
     }
 

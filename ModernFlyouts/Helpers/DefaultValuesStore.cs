@@ -1,4 +1,5 @@
 ﻿using ModernFlyouts.Controls;
+using ModernFlyouts.Core.Media.Control;
 using ModernFlyouts.Core.UI;
 using ModernFlyouts.UI;
 using ModernFlyouts.UI.Media;
@@ -47,6 +48,22 @@ namespace ModernFlyouts.Helpers
         public const bool ShowGSMTCInVolumeFlyout = true;
 
         public const bool ShowVolumeControlInGSMTCFlyout = true;
+
+        public const EnhancedMediaBackendMode EnhancedMediaBackendMode = ModernFlyouts.Core.Media.Control.EnhancedMediaBackendMode.Auto;
+
+        public const bool EnhancedMediaBackendLastPreflightSucceeded = false;
+
+        public const bool ShowMediaPlayerInfo = true;
+
+        public const bool ShowMediaSeekbar = true;
+
+        public const bool ShowMediaShuffle = true;
+
+        public const bool ShowMediaRepeat = true;
+
+        public const MediaAppFilteringMode MediaAppFilteringMode = ModernFlyouts.Core.Media.Control.MediaAppFilteringMode.Disabled;
+
+        public const PinnedAppPriorityMode PinnedAppPriorityMode = ModernFlyouts.Core.Media.Control.PinnedAppPriorityMode.PreferPinnedOnlyWhenPlaying;
 
         #endregion
 
