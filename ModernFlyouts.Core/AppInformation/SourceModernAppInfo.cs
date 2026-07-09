@@ -142,7 +142,8 @@ namespace ModernFlyouts.Core.AppInformation
             await Task.Run(() =>
             {
                 fallbackProcess?.Dispose();
-                fallbackProcess = FindProcessByAppUserModelId(appUserModelId);
+                fallbackProcess = FindProcessByAppUserModelId(appUserModelId)
+                    ?? FindProcessByFallbackDisplayName(appUserModelId);
                 if (fallbackProcess == null)
                 {
                     DisplayName = GetFallbackDisplayName(appUserModelId);
@@ -168,17 +169,7 @@ namespace ModernFlyouts.Core.AppInformation
                     return;
                 }
 
-                try
-                {
-                    var iconExtractor = new IconExtractor(executablePath);
-                    using Icon icon = iconExtractor.GetIcon(0);
-                    using Bitmap bitmap = icon.ToBitmap();
-                    MemoryStream memoryStream = new();
-                    bitmap.Save(memoryStream, ImageFormat.Png);
-                    memoryStream.Seek(0, SeekOrigin.Begin);
-                    LogoStream = memoryStream;
-                }
-                catch { }
+                LogoStream = CreateIconStreamFromExecutable(executablePath);
             });
         }
 
@@ -219,6 +210,131 @@ namespace ModernFlyouts.Core.AppInformation
             }
 
             return fallback;
+        }
+
+        private static MemoryStream CreateIconStreamFromExecutable(string executablePath)
+        {
+            return TryCreateIconStream(() => Icon.ExtractAssociatedIcon(executablePath), out var associatedIconStream)
+                ? associatedIconStream
+                : TryCreateIconStream(() => new IconExtractor(executablePath).GetIcon(0), out var extractedIconStream)
+                    ? extractedIconStream
+                    : null;
+        }
+
+        private static bool TryCreateIconStream(Func<Icon> iconFactory, out MemoryStream iconStream)
+        {
+            iconStream = null;
+
+            try
+            {
+                using Icon icon = iconFactory();
+                if (icon == null)
+                {
+                    return false;
+                }
+
+                using Bitmap bitmap = icon.ToBitmap();
+                iconStream = new MemoryStream();
+                bitmap.Save(iconStream, ImageFormat.Png);
+                iconStream.Seek(0, SeekOrigin.Begin);
+                return true;
+            }
+            catch
+            {
+                iconStream?.Dispose();
+                iconStream = null;
+                return false;
+            }
+        }
+
+        private static Process FindProcessByFallbackDisplayName(string appUserModelId)
+        {
+            string fallbackDisplayName = GetFallbackDisplayName(appUserModelId);
+            string normalizedDisplayName = NormalizeProcessName(fallbackDisplayName);
+            if (string.IsNullOrWhiteSpace(normalizedDisplayName))
+            {
+                return null;
+            }
+
+            Process fallback = null;
+            int fallbackScore = 0;
+
+            foreach (var process in Process.GetProcesses())
+            {
+                try
+                {
+                    int score = GetFallbackProcessMatchScore(process, normalizedDisplayName);
+                    if (score == 0)
+                    {
+                        process.Dispose();
+                        continue;
+                    }
+
+                    if (process.MainWindowHandle != IntPtr.Zero)
+                    {
+                        score += 100;
+                    }
+
+                    if (score > fallbackScore)
+                    {
+                        fallback?.Dispose();
+                        fallback = process;
+                        fallbackScore = score;
+                    }
+                    else
+                    {
+                        process.Dispose();
+                    }
+                }
+                catch
+                {
+                    process.Dispose();
+                }
+            }
+
+            return fallback;
+        }
+
+        private static int GetFallbackProcessMatchScore(Process process, string normalizedDisplayName)
+        {
+            int score = 0;
+
+            score = Math.Max(score, GetExactNameMatchScore(process.ProcessName, normalizedDisplayName, 90));
+            score = Math.Max(score, GetExactNameMatchScore(process.MainWindowTitle, normalizedDisplayName, 80));
+
+            try
+            {
+                string executablePath = process.MainModule?.FileName;
+                score = Math.Max(score, GetExactNameMatchScore(Path.GetFileNameWithoutExtension(executablePath), normalizedDisplayName, 85));
+                score = Math.Max(score, GetExactNameMatchScore(process.MainModule?.FileVersionInfo.FileDescription, normalizedDisplayName, 75));
+                score = Math.Max(score, GetExactNameMatchScore(process.MainModule?.FileVersionInfo.ProductName, normalizedDisplayName, 70));
+                score = Math.Max(score, GetExactNameMatchScore(process.MainModule?.FileVersionInfo.OriginalFilename, normalizedDisplayName, 65));
+            }
+            catch { }
+
+            return score;
+        }
+
+        private static int GetExactNameMatchScore(string value, string normalizedDisplayName, int score)
+        {
+            return string.Equals(NormalizeProcessName(value), normalizedDisplayName, StringComparison.Ordinal)
+                ? score
+                : 0;
+        }
+
+        private static string NormalizeProcessName(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            if (value.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                value = value[..^4];
+            }
+
+            return string.Concat(value.Where(char.IsLetterOrDigit)).ToLowerInvariant();
         }
 
         private static string GetAppUserModelIdForProcess(Process process)
