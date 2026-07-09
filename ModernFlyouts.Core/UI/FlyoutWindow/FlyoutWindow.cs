@@ -37,6 +37,7 @@ namespace ModernFlyouts.Core.UI
             base.OnShown();
 
             PositionFlyout();
+            FlyoutBackdropExperiment.Apply(Handle);
         }
 
         protected override void OnDpiChanged()
