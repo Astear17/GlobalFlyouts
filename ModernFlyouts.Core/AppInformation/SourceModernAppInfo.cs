@@ -18,6 +18,8 @@ namespace ModernFlyouts.Core.AppInformation
 {
     internal class SourceModernAppInfo : SourceAppInfo
     {
+        private static readonly PlayerIconCache playerIconCache = new();
+
         public SourceModernAppInfo(SourceAppInfoData data)
         {
             Data = data;
@@ -40,6 +42,17 @@ namespace ModernFlyouts.Core.AppInformation
                 else if (fallbackProcess != null)
                 {
                     SourceDesktopAppInfo.ActivateWindow(fallbackProcess.MainWindowHandle);
+                }
+                else if (Data.DataType == SourceAppInfoDataType.FromAppUserModelId &&
+                    !string.IsNullOrWhiteSpace(Data.AppUserModelId))
+                {
+                    using var fallback = FindProcessByAppUserModelId(Data.AppUserModelId)
+                        ?? FindProcessByFallbackDisplayName(Data.AppUserModelId);
+
+                    if (fallback != null)
+                    {
+                        SourceDesktopAppInfo.ActivateWindow(fallback.MainWindowHandle);
+                    }
                 }
                 else if (Data.DataType == SourceAppInfoDataType.FromProcessId)
                 {
@@ -64,6 +77,12 @@ namespace ModernFlyouts.Core.AppInformation
                 {
                     appUserModelId = GetAppUserModelIdForProcess();
                 });
+            }
+
+            if (TryApplyCachedPlayerIcon(appUserModelId))
+            {
+                InfoFetched?.Invoke(this, null);
+                return;
             }
 
             try
@@ -170,7 +189,25 @@ namespace ModernFlyouts.Core.AppInformation
                 }
 
                 LogoStream = CreateIconStreamFromExecutable(executablePath);
+                playerIconCache.Store(appUserModelId, DisplayName, LogoStream);
             });
+        }
+
+        private bool TryApplyCachedPlayerIcon(string appUserModelId)
+        {
+            if (!playerIconCache.TryGet(appUserModelId, out var result))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(result.DisplayName))
+            {
+                DisplayName = result.DisplayName;
+            }
+
+            LogoStream?.Dispose();
+            LogoStream = result.CreateStream();
+            return true;
         }
 
         private static Process FindProcessByAppUserModelId(string appUserModelId)
