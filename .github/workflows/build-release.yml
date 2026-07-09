@@ -40,9 +40,9 @@ env:
   PACKAGE_OUTPUT_DIR: ModernFlyouts.Package\AppPackages\CI\
   RELEASE_ASSET_DIR: ModernFlyouts.Package\AppPackages\ReleaseAssets\
   APPX_BUNDLE_PLATFORMS: x86|x64
-  CERT_PASSWORD: Astear17-GlobalFlyouts-CI-Test-Cert
   MSIX_PFX_BASE64: ${{ secrets.MSIX_PFX_BASE64 }}
   MSIX_PFX_PASSWORD: ${{ secrets.MSIX_PFX_PASSWORD }}
+  SELF_SIGNED_PFX_PASSWORD: ${{ secrets.SELF_SIGNED_PFX_PASSWORD }}
 
 jobs:
   build:
@@ -59,9 +59,12 @@ jobs:
       - name: Setup .NET SDKs
         uses: actions/setup-dotnet@v4
         with:
+          # The app/core projects target net6.0-windows; tests target net9.0-windows.
           dotnet-version: |
             6.0.x
             9.0.x
+
+      # TODO: after the first full successful run, add actions/cache for NuGet/MSBuild outputs.
 
       - name: Resolve and stamp package version
         id: version
@@ -154,7 +157,11 @@ jobs:
             "certificate_thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
             "PACKAGE_CERT_PASSWORD=$password" >> $env:GITHUB_ENV
           } else {
-            $password = $env:CERT_PASSWORD
+            $password = $env:SELF_SIGNED_PFX_PASSWORD
+            if (-not $password) {
+              throw 'SELF_SIGNED_PFX_PASSWORD repository secret must be set when MSIX_PFX_BASE64 is not provided.'
+            }
+
             $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
             $cert = New-SelfSignedCertificate `
               -Type Custom `
